@@ -1,4 +1,4 @@
 #gitignore
-
+.wav
 amlo/*/*.wav
 *.wav
