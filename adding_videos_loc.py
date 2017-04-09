@@ -168,7 +168,7 @@ def search_by_loc2(keyword):
 
 def add_to_DB():
     
-    conn_string = "host='localhost' dbname='mexican_politics' user='presdb' password='dbpass'"
+    conn_string = "host='justnew.cl95re7xujec.us-east-1.rds.amazonaws.com' dbname='postgres' user='pres' password='marigold'"
     print "Connecting to database\n	->%s" % (conn_string)
      
     conn = psycopg2.connect(conn_string)
@@ -200,5 +200,6 @@ term_list = ["EEUU", "EU", "Gringolandia", "Obama", "Trump", "Pena Nieto", "EPN"
 for term in term_list:
     print term
     term_search(term,"19.453342, -99.129892", "900km")
-    add_to_DB()
+
+add_to_DB()
     
