@@ -9,7 +9,9 @@ from subprocess import Popen, PIPE
 import pandas as pd
 import re
 import psycopg2
-
+import psycopg2.extras 
+reload(sys)  
+sys.setdefaultencoding('utf8')
 next_tok = 0
 df = pd.DataFrame(columns=['youID', 'pubdate', 'title','chanid', 'lat', 'lon', 'query', 'geoquery','radius'])
 
@@ -63,7 +65,8 @@ def vid_search(keyword, geo, rad):
 
             try: 
                 lat = re.search('LAT: (.*) LONG', vid).group(0)
-                lat = lat.replace(" LONG", "")
+                lat = lat.replace(" LONG", "")reload(sys)  
+sys.setdefaultencoding('utf8')
                 lon = re.search('LONG : (.*)]', vid).group(0)
                 lon = lon.replace("]", "")
             except: 
@@ -105,6 +108,8 @@ def next_vids(keyword, new_tok, geo, rad):
                 regex = re.compile(r'TITLE:(.*)DATE :')
                 title = regex.search(vid).group(0)
                 title =title.replace('TITLE:', '')
+                title =title.replace('DATE :', '')
+
             except: 
                 print "no title" 
                 title = "none"
@@ -174,15 +179,28 @@ def add_to_DB():
     conn = psycopg2.connect(conn_string)
      
     cursor = conn.cursor()
+    cursor.execute("SELECT youid FROM vid_list")
+    current_vids = cursor.fetchall()
+    vid_list = current_vids
+    vid_list= [t[0] for t in vid_list]
+    vid_list = set(vid_list)
+    vid_list = [x.strip() for x in vid_list]
+    conn.commit()
     
-    for index, row in df.iterrows():
-        try: 
-            sql = "INSERT INTO vid_list(youid, title, pubdate, query, chanid, lat, lon, geoquery, radius) VALUES(%s, %s, %s, %s, %s, %s, %s,%s, %s)"
-            data = (df['youID'][index],  df['title'][index], df['pubdate'][index], df['query'][index], df['chanid'][index], df['lat'][index], df['lon'][index], df['geoquery'][index], df['radius'][index])
-            cursor.execute(sql, data)
-            conn.commit()
-        except Exception as e:
-            print e
+    df2 = df.replace(r'[,\"\']','', regex=True).replace(r'\s*([^\s]+)\s*', r'\1', regex=True)
+    df2['title'] = df2['title'].str.strip()
+    df2['chanid'] = df2['chanid'].str.strip()
+    df2 = df[df['pubdate'] != "none"]
+    df2 = df2[df2['pubdate'] != "None"]
+    
+    tuples = [tuple(x) for x in df2.to_records(index=False)]
+
+    from psycopg2.extras import execute_values
+    records_list_template = ','.join(['%s'] * len(tuples))
+    sql = "insert into current_videos(youid, pubdate, title, chanid, lat, lon, query, geoquery, radius) values {}".format(records_list_template)
+    cursor.execute(sql, tuples) 
+    conn.commit()
+            
 def term_search(term, geo, rad):
     vid_search(term, geo, rad)
     
